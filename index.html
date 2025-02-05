@@ -79,7 +79,7 @@
         if (!response.ok) throw new Error('Failed to load HealthClinics.geojson');
         health_c = await response.json();
         
-        response = await fetch('assets/2020_census.json');
+        response = await fetch('assets/2020_census.geojson');
         if (!response.ok) throw new Error('Failed to load 2020_census.json');
         seattle = await response.json();
         
