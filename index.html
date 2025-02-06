@@ -97,12 +97,12 @@
       response = await fetch('assets/HealthClinics.geojson');
       if (!response.ok) throw new Error('Failed to load HealthClinics.geojson');
       health_c = await response.json();
-      response = await fetch('census_2020.geojson');
+      response = await fetch('assets/census_2020.geojson');
       if (!response.ok) throw new Error('Failed to load 2020_census.json');
       seattle = await response.json();
       
       map.on('load', async function () {
-        let response = await fetch('census_2020.geojson');
+        let response = await fetch('assets/census_2020.geojson');
         let seattle = await response.json();
         map.addSource('health_c', {
           type: 'geojson',
