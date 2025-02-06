@@ -8,41 +8,60 @@
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.5.0/mapbox-gl.js"></script>
     <style>
       body {
-        margin: 0;
-        padding: 0;
+          margin: 0;
+          padding: 0;
+          display: flex;
+          height: 100vh;
       }
 
       #container {
-        display: flex;
-        height: 100vh;
-        flex-direction: row;
-        align-items: stretch;
+          position: relative;
+          flex-grow: 1;
+          display: flex;
       }
+
       #side-panel {
-        flex-basis: 500px;
-        overflow-y: scroll;
+          position: absolute;
+          top: 0;
+          right: 0;
+          width: 300px; 
+          height: 100%;
+          background-color: white;
+          box-shadow: -2px 0px 5px rgba(0,0,0,0.5); 
+          overflow-y: auto;
+          z-index: 1;
+          padding: 20px;
+      }
+
+      @media (max-width: 1024px) {
+        #side-panel {
+          display: none;
+        }
       }
 
       #map {
-        flex-grow: 1;
-      }
-      button {
-        margin-bottom: 10px;
-      }
-      table {
-        border-collapse: collapse;
-        border-spacing: 0;
-        width: 100%;
-        border: 1px solid #ddd;
+          flex-grow: 1;
+          height: 100%;
+          z-index: 0;
       }
 
-      th,
-      td {
-        text-align: left;
-        padding: 16px;
+      button {
+          margin-bottom: 10px;
       }
+
+      table {
+          border-collapse: collapse;
+          width: 100%;
+          border: 1px solid #ddd;
+      }
+
+      th, td {
+          text-align: left;
+          padding: 16px;
+      }
+
       tr:nth-child(even) {
-        background-color: #f2f2f2;
+          background-color: #f2f2f2;
       }
     </style>
 </head> 
@@ -52,7 +71,7 @@
 
            <h2>Health Center List</h2>
            <button id="sort-btn">Sort Alphabetically</button>
-
+           <button id="sort-id">Sort by ID</button>
            <table id="clinic-table">
               <tr>
                   <th>ID</th>
@@ -66,57 +85,59 @@
    <script>
      mapboxgl.accessToken = 'pk.eyJ1IjoiY29ubm9yY3JjNzgiLCJhIjoiY202c2dudHptMDgwejJqcTU2b2diZXVndiJ9.rot0eSSXgWp2THeHVL0nyQ';
      let map = new mapboxgl.Map({
-      container: 'map', // container ID
-      style: 'mapbox://styles/mapbox/satellite-v9', // style URL
-      zoom: 10, // starting zoom
-      center: [-122.3321, 47.6062] // starting center
+      container: 'map', 
+      style: 'mapbox://styles/mapbox/streets-v11', 
+      zoom: 10, 
+      center: [-122.3321, 47.6062] 
       });
       async function geojsonFetch() {
     try {
-        let response, health_c, seattle, table;
-        
-        response = await fetch('assets/HealthClinics.geojson');
-        if (!response.ok) throw new Error('Failed to load HealthClinics.geojson');
-        health_c = await response.json();
-        
-        response = await fetch('assets/2020_census.geojson');
-        if (!response.ok) throw new Error('Failed to load 2020_census.json');
-        seattle = await response.json();
-        
-        // Add layers to the map
-        map.on('load', function () {
-            map.addSource('health_c', {
-                type: 'geojson',
-                data: health_c
-            });
-            map.addLayer({
-                'id': 'health_c-layer',
-                'type': 'circle',
-                'source': 'health_c',
-                'paint': {
-                    'circle-radius': 8,
-                    'circle-stroke-width': 2,
-                    'circle-color': 'red',
-                    'circle-stroke-color': 'white'
-                }
-            });
-
-            map.addSource('seattle', {
-                type: 'geojson',
-                data: seattle
-            });
-            map.addLayer({
-                'id': 'seattle-layer',
-                'type': 'fill',
-                'source': 'seattle',
-                'paint': {
-                    'fill-color': '#0080ff', // blue color fill
-                    'fill-opacity': 0.5
-                }
-            });
+      let response, health_c, seattle, table;
+      
+      response = await fetch('assets/HealthClinics.geojson');
+      if (!response.ok) throw new Error('Failed to load HealthClinics.geojson');
+      health_c = await response.json();
+      response = await fetch('census_2020.geojson');
+      if (!response.ok) throw new Error('Failed to load 2020_census.json');
+      seattle = await response.json();
+      
+      map.on('load', async function () {
+        let response = await fetch('census_2020.geojson');
+        let seattle = await response.json();
+        map.addSource('health_c', {
+          type: 'geojson',
+          data: health_c
         });
+        map.addLayer({
+          'id': 'health_c-layer',
+          'type': 'circle',
+          'source': 'health_c',
+          'paint': {
+            'circle-radius': 8,
+            'circle-stroke-width': 2,
+            'circle-color': 'red',
+            'circle-stroke-color': 'white'
+          }
+        });
+        map.addSource('seattle', {
+          type: 'geojson',
+          data: seattle
+        });
+      map.addLayer({
+        'id': 'seattle-layer',
+        'type': 'fill',
+        'source': 'seattle',
+        'paint': {
+        'fill-color': '#0080ff',
+        'fill-opacity': 0.5
+        }
+      });
 
-        // Populate Table
+    map.fitBounds([
+      [-122.5431, 47.0846],
+      [-121.0650, 47.7855] 
+      ], { padding: 50 });
+      });
         table = document.getElementById("clinic-table");
         let row, cell1, cell2, cell3;
         health_c.features.forEach((feature) => {
@@ -124,26 +145,36 @@
             cell1 = row.insertCell(0);
             cell2 = row.insertCell(1);
             cell3 = row.insertCell(2);
-            cell1.innerHTML = feature.properties.feature_id || "N/A";
-            cell2.innerHTML = feature.properties.name || "Unknown";
-            cell3.innerHTML = feature.properties.address || "No address provided";
+            cell1.innerHTML = feature.properties.FEATURE_ID;
+            cell2.innerHTML = feature.properties.NAME;
+            cell3.innerHTML = feature.properties.ADDRESS;
         });
 
     } catch (error) {
         console.error("Error loading GeoJSON files:", error);
     }
-}
-geojsonFetch();
-document.getElementById("sort-btn").addEventListener("click", function () {
+  }
+  geojsonFetch();
+  document.getElementById("sort-btn").addEventListener("click", function () {
     let table = document.getElementById("clinic-table");
-    let rows = Array.from(table.rows).slice(1); // Exclude header row
+    let rows = Array.from(table.rows).slice(1);
     rows.sort((a, b) => {
         let nameA = a.cells[1].innerText.toLowerCase();
         let nameB = b.cells[1].innerText.toLowerCase();
         return nameA.localeCompare(nameB);
     });
     rows.forEach(row => table.appendChild(row));
-});
+  });
+  document.getElementById("sort-id").addEventListener('click', function() {
+    let table = document.getElementById("clinic-table");
+    let rows = Array.from(table.rows).slice(1);
+    rows.sort((a, b) => {
+        let idA = parseInt(a.cells[0].innerText);
+        let idB = parseInt(b.cells[0].innerText);
+        return idA - idB;
+    });
+    rows.forEach(row => table.appendChild(row));
+  });
   </script>
 </body> 
 <html>    
